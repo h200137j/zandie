@@ -238,7 +238,6 @@ img { max-width: 100%; height: auto; display: block; }
 .snap {
   margin: 0;
   width: min(19rem, 82vw);
-  perspective: 1400px;
 }
 
 .snap--wide, .snap--solo { width: min(26rem, 88vw); }
@@ -252,47 +251,49 @@ img { max-width: 100%; height: auto; display: block; }
   padding: 0;
   background: none;
   width: 100%;
-  /* block, not grid: Safari flattens transform-style on grid and flex
-     containers, which leaves the back face permanently turned away */
   display: block;
   position: relative;
   cursor: pointer;
-  -webkit-transform-style: preserve-3d;
-  transform-style: preserve-3d;
   transform: rotate(var(--tilt, 0deg));
-  transition: transform 0.62s var(--ease), filter 0.3s ease;
+  transition: transform 0.45s var(--ease), filter 0.3s ease;
 }
 
 .snap__card:hover { filter: brightness(1.03); }
 
 @media (hover: hover) {
-  .snap__card:not([aria-expanded="true"]):hover {
+  .snap__card:not(.is-back):hover {
     transform: rotate(var(--tilt, 0deg)) translateY(-6px) scale(1.015);
   }
 }
 
-.snap__card[aria-expanded="true"] {
-  transform: rotate(calc(var(--tilt, 0deg) * -0.6)) rotateY(180deg);
+/* Turning a photo over straightens it on the page, the way it does on a desk.
+   This used to be a rotateY in a preserve-3d context; that broke on phones —
+   several mobile browsers flatten the 3D context, and once flat the reverse
+   face is never presented. Nothing here depends on 3D any more. */
+.snap__card.is-back {
+  transform: rotate(calc(var(--tilt, 0deg) * -0.35)) scale(1.012);
 }
 
 /* The front sits in normal flow and sets the card's size; the back is laid
-   over it. Both hide their reverse, and each also swaps opacity halfway
-   through the turn — that fallback is what keeps the note readable on
-   browsers that flatten the 3D transform rather than honouring it. */
+   over it. The two cross-fade — plain opacity, no compositing tricks, no
+   dependency on when a timer fires. visibility is switched at the far end of
+   the fade so the hidden face is properly gone for screen readers and taps. */
 .snap__face {
   background: var(--paper);
   padding: 0.62rem 0.62rem 0;
   box-shadow: 0 1rem 2rem rgba(36, 28, 46, 0.26);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
   display: flex;
   flex-direction: column;
 }
 
+/* No transition on the swap itself, deliberately. If which-face-is-showing
+   depends on an animation running, then anything that stops animations from
+   running — a throttled tab, a browser that skips the transition, a device
+   that will not composite the layer — leaves a blank card. The movement is
+   carried by the card's transform above; the swap underneath it is instant. */
 .snap__face--front {
   position: relative;
   z-index: 1;
-  transform: rotateY(0deg); /* forces Safari to composite the front in 3D */
 }
 
 .snap__face--back {
@@ -300,12 +301,11 @@ img { max-width: 100%; height: auto; display: block; }
   inset: 0;
   overflow: hidden;
   opacity: 0;
+  visibility: hidden;
 }
 
-/* app.js adds .is-back at the halfway point of the turn. No transition here
-   on purpose — the swap has to be an instant, guaranteed state change. */
-.snap__card.is-back .snap__face--front { opacity: 0; }
-.snap__card.is-back .snap__face--back  { opacity: 1; }
+.snap__card.is-back .snap__face--front { opacity: 0; visibility: hidden; }
+.snap__card.is-back .snap__face--back  { opacity: 1; visibility: visible; }
 
 /* tape holding each photo to the page */
 .snap__face--front::after {
@@ -337,12 +337,13 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* the reverse — ruled paper, written on */
 .snap__face--back {
-  transform: rotateY(180deg);
   background-color: var(--paper-warm);
+  /* a whole pixel, or the rule lands on a fraction of one and aliases into
+     a dashed line at most screen densities */
   background-image: repeating-linear-gradient(
     to bottom,
-    transparent 0 1.68rem,
-    rgba(36, 28, 46, 0.13) 1.68rem 1.7rem
+    transparent 0 calc(1.7rem - 1px),
+    rgba(36, 28, 46, 0.13) calc(1.7rem - 1px) 1.7rem
   );
   padding: 1.6rem 1.3rem 1.1rem;
   justify-content: space-between;
@@ -553,6 +554,6 @@ img { max-width: 100%; height: auto; display: block; }
   .cover__scroll svg,
   .tapedeck__btn[aria-pressed="true"] .tapedeck__reel { animation: none; }
   @media (hover: hover) {
-    .snap__card:not([aria-expanded="true"]):hover { transform: rotate(var(--tilt, 0deg)); }
+    .snap__card:not(.is-back):hover { transform: rotate(var(--tilt, 0deg)); }
   }
 }

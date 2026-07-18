@@ -8,20 +8,12 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const cards = document.querySelectorAll('.snap__card');
 
-// Halfway through the 0.62s turn, swap which face is visible. Several mobile
-// browsers refuse to keep the card's 3D context, and once it flattens
-// backface-visibility stops hiding the reverse — the note would never appear.
-// Doing the swap here rather than in CSS keeps it a guaranteed state change.
-const HALF_TURN = reduced ? 0 : 310;
-const timers = new WeakMap();
-
+// One class, applied immediately. CSS does the rest. There is no timer and no
+// 3D context involved, so there is nothing here that can fire late, get
+// throttled, or fail to be composited on a particular phone.
 function setFace(card, showBack) {
-  clearTimeout(timers.get(card));
   card.setAttribute('aria-expanded', String(showBack));
-  timers.set(
-    card,
-    setTimeout(() => card.classList.toggle('is-back', showBack), HALF_TURN)
-  );
+  card.classList.toggle('is-back', showBack);
 }
 
 cards.forEach((card) => {
