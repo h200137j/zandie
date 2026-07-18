@@ -86,32 +86,44 @@ const play = document.querySelector('[data-play]');
 const state = document.querySelector('[data-song-state]');
 
 if (deck && audio && play && state) {
-  // no song in the repo yet? then no button at all. never a broken control.
-  deck.hidden = true;
-
+  // The deck starts visible and is only taken away if the song genuinely is
+  // not there, so a slow or blocked check cannot cost you the control.
+  // Fail open. If the check itself cannot run — offline, HEAD blocked — offer
+  // the control anyway; only a genuine 404 means there is no song to play.
   fetch(audio.getAttribute('src'), { method: 'HEAD' })
     .then((res) => {
-      if (res.ok) deck.hidden = false;
+      if (!res.ok) deck.hidden = true;
     })
     .catch(() => {});
 
-  audio.addEventListener('error', () => {
-    deck.hidden = true;
+  function stopped(label) {
+    play.setAttribute('aria-pressed', 'false');
+    state.textContent = label;
+  }
+
+  // Never hide the deck once it is up. Playback is refused for all sorts of
+  // ordinary reasons — a phone call holding audio focus is the common one —
+  // and every one of them is temporary. Say so and stay tappable.
+  audio.addEventListener('error', () => stopped('tap to retry'));
+
+  // something else took the audio: a call, another tab, the headphones coming out
+  audio.addEventListener('pause', () => {
+    if (!audio.ended) stopped('paused');
   });
 
   play.addEventListener('click', async () => {
-    if (audio.paused) {
-      try {
-        await audio.play();
-        play.setAttribute('aria-pressed', 'true');
-        state.textContent = 'playing';
-      } catch {
-        deck.hidden = true;
-      }
-    } else {
+    if (!audio.paused) {
       audio.pause();
-      play.setAttribute('aria-pressed', 'false');
-      state.textContent = 'paused';
+      return; // the pause handler sets the label
+    }
+
+    state.textContent = 'loading';
+    try {
+      await audio.play();
+      play.setAttribute('aria-pressed', 'true');
+      state.textContent = 'playing';
+    } catch {
+      stopped('tap to retry');
     }
   });
 
