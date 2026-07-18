@@ -8,7 +8,7 @@ styles.css          all styling
 app.js              three behaviours: flip a photo, reveal on scroll, play the song
 assets/photos/      web-sized photos (1600px long edge)
 assets/thumbs/      600px versions, currently unused — kept for future use
-assets/song.mp3     Limit Nala — Ama Buffalo
+assets/song.mp3     Limit Nala — Ama Buffalo (96kbps, 3.4MB)
 originals/          the untouched files you gave me
 ```
 
@@ -51,7 +51,9 @@ captions, and the letter.
 
 ## Swapping the song
 
-Replace `assets/song.mp3` and update the title in `index.html`:
+Replace `assets/song.mp3` and update the title in `index.html`. Re-encode anything
+large first — `ffmpeg -i new-song.mp3 -c:a libmp3lame -b:a 96k assets/song.mp3` — since
+the file is only fetched when someone taps play, and that tap is often on mobile data:
 
 ```html
 <span class="tapedeck__title" data-song-title>ama buffalo</span>
