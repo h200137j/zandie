@@ -280,6 +280,35 @@ img { max-width: 100%; height: auto; display: block; }
   transform: rotate(calc(var(--tilt, 0deg) * -0.4));
 }
 
+/* tape holding each photo to the page. Only the photo carries it — the note
+   is the one you have already peeled off and turned over. */
+.snap__card--photo::after {
+  content: "";
+  position: absolute;
+  top: -0.6rem;
+  right: -0.9rem;
+  width: 5rem;
+  height: 1.75rem;
+  background: var(--tape);
+  border-inline: 1px solid var(--tape-edge);
+  transform: rotate(22deg);
+  clip-path: polygon(3% 2%, 97% 0, 100% 97%, 0 100%);
+}
+
+.snap__win { display: block; overflow: hidden; background: var(--surface-lo); }
+.snap__win img { aspect-ratio: 3 / 4; object-fit: cover; width: 100%; }
+.snap--wide .snap__win img { aspect-ratio: 3 / 2; }
+
+.snap__cap {
+  font-family: var(--font-hand);
+  font-size: 0.92rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+  padding: 0.75rem 0.3rem 1rem;
+  display: block;
+  text-align: left;
+}
+
 /* the reverse — ruled paper, written on */
 .snap__card--note {
   background-color: var(--paper-warm);
