@@ -8,6 +8,22 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const cards = document.querySelectorAll('.snap__card');
 
+// Halfway through the 0.62s turn, swap which face is visible. Several mobile
+// browsers refuse to keep the card's 3D context, and once it flattens
+// backface-visibility stops hiding the reverse — the note would never appear.
+// Doing the swap here rather than in CSS keeps it a guaranteed state change.
+const HALF_TURN = reduced ? 0 : 310;
+const timers = new WeakMap();
+
+function setFace(card, showBack) {
+  clearTimeout(timers.get(card));
+  card.setAttribute('aria-expanded', String(showBack));
+  timers.set(
+    card,
+    setTimeout(() => card.classList.toggle('is-back', showBack), HALF_TURN)
+  );
+}
+
 cards.forEach((card) => {
   card.addEventListener('click', () => {
     const open = card.getAttribute('aria-expanded') === 'true';
@@ -15,18 +31,18 @@ cards.forEach((card) => {
     // only one photo face-down at a time — it reads like a real desk
     if (!open) {
       cards.forEach((other) => {
-        if (other !== card) other.setAttribute('aria-expanded', 'false');
+        if (other !== card) setFace(other, false);
       });
     }
 
-    card.setAttribute('aria-expanded', String(!open));
+    setFace(card, !open);
   });
 });
 
 // esc puts them all back
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    cards.forEach((card) => card.setAttribute('aria-expanded', 'false'));
+    cards.forEach((card) => setFace(card, false));
   }
 });
 

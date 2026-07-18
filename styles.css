@@ -252,8 +252,12 @@ img { max-width: 100%; height: auto; display: block; }
   padding: 0;
   background: none;
   width: 100%;
-  display: grid;
+  /* block, not grid: Safari flattens transform-style on grid and flex
+     containers, which leaves the back face permanently turned away */
+  display: block;
+  position: relative;
   cursor: pointer;
+  -webkit-transform-style: preserve-3d;
   transform-style: preserve-3d;
   transform: rotate(var(--tilt, 0deg));
   transition: transform 0.62s var(--ease), filter 0.3s ease;
@@ -271,18 +275,37 @@ img { max-width: 100%; height: auto; display: block; }
   transform: rotate(calc(var(--tilt, 0deg) * -0.6)) rotateY(180deg);
 }
 
-/* both faces stack in one cell so the card keeps its size */
+/* The front sits in normal flow and sets the card's size; the back is laid
+   over it. Both hide their reverse, and each also swaps opacity halfway
+   through the turn — that fallback is what keeps the note readable on
+   browsers that flatten the 3D transform rather than honouring it. */
 .snap__face {
-  grid-area: 1 / 1;
   background: var(--paper);
   padding: 0.62rem 0.62rem 0;
   box-shadow: 0 1rem 2rem rgba(36, 28, 46, 0.26);
-  backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  position: relative;
+  backface-visibility: hidden;
   display: flex;
   flex-direction: column;
 }
+
+.snap__face--front {
+  position: relative;
+  z-index: 1;
+  transform: rotateY(0deg); /* forces Safari to composite the front in 3D */
+}
+
+.snap__face--back {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+}
+
+/* app.js adds .is-back at the halfway point of the turn. No transition here
+   on purpose — the swap has to be an instant, guaranteed state change. */
+.snap__card.is-back .snap__face--front { opacity: 0; }
+.snap__card.is-back .snap__face--back  { opacity: 1; }
 
 /* tape holding each photo to the page */
 .snap__face--front::after {
@@ -526,6 +549,7 @@ img { max-width: 100%; height: auto; display: block; }
   html { scroll-behavior: auto; }
   .snap__card,
   .js .reveal { transition-duration: 0.01ms; }
+  .snap__face { transition-delay: 0s; }
   .cover__scroll svg,
   .tapedeck__btn[aria-pressed="true"] .tapedeck__reel { animation: none; }
   @media (hover: hover) {
