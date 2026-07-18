@@ -243,100 +243,45 @@ img { max-width: 100%; height: auto; display: block; }
 .snap--wide, .snap--solo { width: min(26rem, 88vw); }
 .snap--solo { margin-inline: auto; }
 
+/* Two real cards per photo, one shown at a time. Nothing is layered over
+   anything, nothing is rotated in 3D, and nothing animated decides which one
+   you can see — the hidden card is simply not in the layout. This is the only
+   arrangement that behaved on every phone we tried. */
 .snap__card {
   /* reset the button */
   font: inherit;
   color: inherit;
   border: 0;
-  padding: 0;
-  background: none;
   width: 100%;
-  display: block;
-  position: relative;
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--paper);
+  padding: 0.62rem 0.62rem 0;
+  box-shadow: 0 1rem 2rem rgba(36, 28, 46, 0.26);
   transform: rotate(var(--tilt, 0deg));
-  transition: transform 0.45s var(--ease), filter 0.3s ease;
+  transition: transform 0.35s var(--ease), filter 0.3s ease;
 }
+
+/* .snap__card sets display:flex, which would otherwise beat the hidden
+   attribute's UA display:none and leave both cards on screen */
+.snap__card[hidden] { display: none; }
 
 .snap__card:hover { filter: brightness(1.03); }
 
 @media (hover: hover) {
-  .snap__card:not(.is-back):hover {
-    transform: rotate(var(--tilt, 0deg)) translateY(-6px) scale(1.015);
-  }
+  .snap__card:hover { transform: rotate(var(--tilt, 0deg)) translateY(-6px) scale(1.015); }
 }
 
-/* Turning a photo over straightens it on the page, the way it does on a desk.
-   This used to be a rotateY in a preserve-3d context; that broke on phones —
-   several mobile browsers flatten the 3D context, and once flat the reverse
-   face is never presented. Nothing here depends on 3D any more. */
-.snap__card.is-back {
-  transform: rotate(calc(var(--tilt, 0deg) * -0.35)) scale(1.012);
-}
-
-/* The front sits in normal flow and sets the card's size; the back is laid
-   over it. The two cross-fade — plain opacity, no compositing tricks, no
-   dependency on when a timer fires. visibility is switched at the far end of
-   the fade so the hidden face is properly gone for screen readers and taps. */
-.snap__face {
-  background: var(--paper);
-  padding: 0.62rem 0.62rem 0;
-  box-shadow: 0 1rem 2rem rgba(36, 28, 46, 0.26);
-  display: flex;
-  flex-direction: column;
-}
-
-/* No transition on the swap itself, deliberately. If which-face-is-showing
-   depends on an animation running, then anything that stops animations from
-   running — a throttled tab, a browser that skips the transition, a device
-   that will not composite the layer — leaves a blank card. The movement is
-   carried by the card's transform above; the swap underneath it is instant. */
-.snap__face--front {
-  position: relative;
-  z-index: 1;
-}
-
-.snap__face--back {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  opacity: 0;
-  visibility: hidden;
-}
-
-.snap__card.is-back .snap__face--front { opacity: 0; visibility: hidden; }
-.snap__card.is-back .snap__face--back  { opacity: 1; visibility: visible; }
-
-/* tape holding each photo to the page */
-.snap__face--front::after {
-  content: "";
-  position: absolute;
-  top: -0.6rem;
-  right: -0.9rem;
-  width: 5rem;
-  height: 1.75rem;
-  background: var(--tape);
-  border-inline: 1px solid var(--tape-edge);
-  transform: rotate(22deg);
-  clip-path: polygon(3% 2%, 97% 0, 100% 97%, 0 100%);
-}
-
-.snap__win { display: block; overflow: hidden; background: var(--surface-lo); }
-.snap__win img { aspect-ratio: 3 / 4; object-fit: cover; width: 100%; }
-.snap--wide .snap__win img { aspect-ratio: 3 / 2; }
-
-.snap__cap {
-  font-family: var(--font-hand);
-  font-size: 0.92rem;
-  line-height: 1.35;
-  color: var(--ink-soft);
-  padding: 0.75rem 0.3rem 1rem;
-  display: block;
-  text-align: left;
+/* the note sits straighter on the page, the way a photo does once you have
+   picked it up and turned it over */
+.snap__card--note {
+  transform: rotate(calc(var(--tilt, 0deg) * -0.4));
 }
 
 /* the reverse — ruled paper, written on */
-.snap__face--back {
+.snap__card--note {
   background-color: var(--paper-warm);
   /* a whole pixel, or the rule lands on a fraction of one and aliases into
      a dashed line at most screen densities */
@@ -348,7 +293,13 @@ img { max-width: 100%; height: auto; display: block; }
   padding: 1.6rem 1.3rem 1.1rem;
   justify-content: space-between;
   gap: 1rem;
+  /* same footprint as the photo it replaces, so the page does not jump when
+     you tap. It is a floor, not a cap — a long note grows the card instead of
+     being clipped by it. */
+  aspect-ratio: 3 / 4;
 }
+
+.snap--wide .snap__card--note { aspect-ratio: 3 / 2; }
 
 .snap__note {
   font-family: var(--font-hand);
@@ -381,7 +332,7 @@ img { max-width: 100%; height: auto; display: block; }
   transition: opacity 0.3s ease;
 }
 
-.snap__card[aria-expanded="true"] ~ .snap__hint { opacity: 0.3; }
+.snap__card--photo[hidden] ~ .snap__hint { opacity: 0.3; }
 
 /* ═══════════ the letter ═══════════ */
 
@@ -550,10 +501,9 @@ img { max-width: 100%; height: auto; display: block; }
   html { scroll-behavior: auto; }
   .snap__card,
   .js .reveal { transition-duration: 0.01ms; }
-  .snap__face { transition-delay: 0s; }
   .cover__scroll svg,
   .tapedeck__btn[aria-pressed="true"] .tapedeck__reel { animation: none; }
   @media (hover: hover) {
-    .snap__card:not(.is-back):hover { transform: rotate(var(--tilt, 0deg)); }
+    .snap__card:hover { transform: rotate(var(--tilt, 0deg)); }
   }
 }

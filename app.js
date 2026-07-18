@@ -6,36 +6,53 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ── 1. turning the photographs over ───────────────────────── */
 
-const cards = document.querySelectorAll('.snap__card');
+// Each photo is two separate cards — the picture and the note — and exactly
+// one of them is in the layout at a time. Swapping them is a single attribute
+// change with nothing animated, composited or timed in the way of it.
+const snaps = [...document.querySelectorAll('.snap')]
+  .map((snap) => ({
+    photo: snap.querySelector('.snap__card--photo'),
+    note: snap.querySelector('.snap__card--note'),
+  }))
+  .filter((s) => s.photo && s.note);
 
-// One class, applied immediately. CSS does the rest. There is no timer and no
-// 3D context involved, so there is nothing here that can fire late, get
-// throttled, or fail to be composited on a particular phone.
-function setFace(card, showBack) {
-  card.setAttribute('aria-expanded', String(showBack));
-  card.classList.toggle('is-back', showBack);
+function show(snap, note, moveFocus) {
+  // measure the outgoing card first, so the incoming one takes up exactly the
+  // same room and nothing below it moves. The photo card is a little taller
+  // than the note — it carries a caption — so the ratio alone is not enough.
+  if (note && !snap.photo.hidden) {
+    snap.note.style.minHeight = snap.photo.getBoundingClientRect().height + 'px';
+  }
+
+  snap.photo.hidden = note;
+  snap.note.hidden = !note;
+  snap.photo.setAttribute('aria-expanded', String(note));
+
+  // the button that was just pressed is now gone; hand focus to the one that
+  // replaced it, or keyboard users are dropped back to the top of the document
+  if (moveFocus) {
+    (note ? snap.note : snap.photo).focus({ preventScroll: true });
+  }
 }
 
-cards.forEach((card) => {
-  card.addEventListener('click', () => {
-    const open = card.getAttribute('aria-expanded') === 'true';
-
-    // only one photo face-down at a time — it reads like a real desk
-    if (!open) {
-      cards.forEach((other) => {
-        if (other !== card) setFace(other, false);
-      });
-    }
-
-    setFace(card, !open);
+snaps.forEach((snap) => {
+  // only one note out at a time — it reads like a real desk
+  snap.photo.addEventListener('click', () => {
+    snaps.forEach((other) => {
+      if (other !== snap) show(other, false, false);
+    });
+    show(snap, true, true);
   });
+
+  snap.note.addEventListener('click', () => show(snap, false, true));
 });
 
 // esc puts them all back
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    cards.forEach((card) => setFace(card, false));
-  }
+  if (e.key !== 'Escape') return;
+  const open = snaps.find((s) => !s.note.hidden);
+  snaps.forEach((s) => show(s, false, false));
+  if (open) open.photo.focus({ preventScroll: true });
 });
 
 /* ── 2. the page arriving, a piece at a time ───────────────── */

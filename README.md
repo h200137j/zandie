@@ -75,8 +75,13 @@ Portrait photos should be 3:4. Anything landscape gets `class="snap snap--wide"`
 - The palette is taken from the photographs — the lilac door frame in the mirror selfie,
   the marigold hedge, the green on the t-shirt, the red of the Coca-Cola bottle in the
   1st-birthday photo.
-- Photos are `<button>` elements, so they flip with Enter or Space and show a focus ring.
-  Escape turns them all back over.
+- Each photo is two separate cards — the picture and the note — and exactly one is in
+  the layout at a time. There is no 3D flip, no timer and no animation deciding which
+  one you can see; the hidden card is simply not rendered. Earlier versions used a
+  `rotateY` flip, which failed on phones: mobile browsers flatten the 3D context, and
+  once flat the reverse face is never presented.
+- Both cards are `<button>` elements, so they swap with Enter or Space and show a focus
+  ring. Focus follows the swap. Escape puts every note away.
 - `prefers-reduced-motion` disables the scroll reveals, the flip animation and the
   spinning reel.
 - `img { height: auto }` in `styles.css` is load-bearing. Without it the `width`/`height`
